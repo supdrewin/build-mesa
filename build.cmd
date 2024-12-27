@@ -315,7 +315,6 @@ meson setup ^
   -Db_vscrt=mt ^
   -Dllvm=enabled ^
   -Dplatforms=windows ^
-  -Dgallium-drivers=radeonsi ^
   -Dvulkan-drivers=amd ^
   !MESON_CROSS! || exit /b 1
 ninja -C mesa.build-%MESA_ARCH% install || exit /b 1
