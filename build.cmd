@@ -315,7 +315,6 @@ meson setup ^
   -Db_vscrt=mt ^
   -Dllvm=enabled ^
   -Dplatforms=windows ^
-  -Dvulkan-drivers=amd ^
   !MESON_CROSS! || exit /b 1
 ninja -C mesa.build-%MESA_ARCH% install || exit /b 1
 python mesa.src\src\vulkan\util\vk_icd_gen.py --api-version 1.3 --xml mesa.src\src\vulkan\registry\vk.xml --lib-path vulkan_radeon.dll --out mesa-radv-%MESA_ARCH%\bin\radeon_icd.!TARGET_ARCH_NAME!.json || exit /b 1
