@@ -300,114 +300,33 @@ rem *** extra libs ***
 
 set LINK=version.lib ntdll.lib
 
-rem *** llvmpipe, lavapipe, osmesa ***
+rem *** radv ***
 
 rd /s /q mesa.build-%MESA_ARCH% 1>nul 2>nul
 meson setup ^
   mesa.build-%MESA_ARCH% ^
   mesa.src ^
-  --prefix="%CD%\mesa-llvmpipe-%MESA_ARCH%" ^
+  --prefix="%CD%\mesa-radv-%MESA_ARCH%" ^
   --default-library=static ^
   -Dbuildtype=release ^
   -Db_ndebug=true ^
   -Db_vscrt=mt ^
   -Dllvm=enabled ^
   -Dplatforms=windows ^
-  -Dosmesa=true ^
-  -Dgallium-drivers=swrast ^
-  -Dvulkan-drivers=swrast ^
+  -Dvulkan-drivers=amd ^
   !MESON_CROSS! || exit /b 1
 ninja -C mesa.build-%MESA_ARCH% install || exit /b 1
-python mesa.src\src\vulkan\util\vk_icd_gen.py --api-version 1.4 --xml mesa.src\src\vulkan\registry\vk.xml --lib-path vulkan_lvp.dll --out mesa-llvmpipe-%MESA_ARCH%\bin\lvp_icd.!TARGET_ARCH_NAME!.json || exit /b 1
-
-rem *** d3d12, dzn ***
-
-rd /s /q mesa.build-%MESA_ARCH% 1>nul 2>nul
-meson setup ^
-  mesa.build-%MESA_ARCH% ^
-  mesa.src ^
-  --prefix="%CD%\mesa-d3d12-%MESA_ARCH%" ^
-  --default-library=static ^
-  -Dbuildtype=release ^
-  -Db_ndebug=true ^
-  -Db_vscrt=mt ^
-  -Dllvm=disabled ^
-  -Dplatforms=windows ^
-  -Dosmesa=false ^
-  -Dgallium-drivers=d3d12 ^
-  -Dvulkan-drivers=microsoft-experimental ^
-  !MESON_CROSS! || exit /b 1
-ninja -C mesa.build-%MESA_ARCH% install || exit /b 1
-python mesa.src\src\vulkan\util\vk_icd_gen.py --api-version 1.1 --xml mesa.src\src\vulkan\registry\vk.xml --lib-path vulkan_dzn.dll --out mesa-d3d12-%MESA_ARCH%\bin\dzn_icd.!TARGET_ARCH_NAME!.json || exit /b 1
-if exist "%ProgramFiles(x86)%\Windows Kits\10\Redist\D3D\%MESA_ARCH%\dxil.dll" (
-  copy /y "%ProgramFiles(x86)%\Windows Kits\10\Redist\D3D\%MESA_ARCH%\dxil.dll" mesa-d3d12-%MESA_ARCH%\bin\
-) else if exist "%WindowsSdkVerBinPath%%MESA_ARCH%\dxil.dll" (
-  copy /y "%WindowsSdkVerBinPath%%MESA_ARCH%\dxil.dll" mesa-d3d12-%MESA_ARCH%\bin\
-)
-
-rem *** zink ***
-
-rd /s /q mesa.build-%MESA_ARCH% 1>nul 2>nul
-git apply -p0 --directory=mesa.src mesa-zink.patch || exit /b 1
-meson setup ^
-  mesa.build-%MESA_ARCH% ^
-  mesa.src ^
-  --prefix="%CD%\mesa-zink-%MESA_ARCH%" ^
-  --default-library=static ^
-  -Dbuildtype=release ^
-  -Db_ndebug=true ^
-  -Db_vscrt=mt ^
-  -Dllvm=disabled ^
-  -Dplatforms=windows ^
-  -Dosmesa=false ^
-  -Dgallium-drivers=zink ^
-  !MESON_CROSS! || exit /b 1
-ninja -C mesa.build-%MESA_ARCH% install || exit /b 1
+python mesa.src\src\vulkan\util\vk_icd_gen.py --api-version 1.4 --xml mesa.src\src\vulkan\registry\vk.xml --lib-path vulkan_radv.dll --out mesa-radv-%MESA_ARCH%\bin\radv_icd.!TARGET_ARCH_NAME!.json || exit /b 1
 
 rem *** done ***
-rem output is in mesa-llvmpipe, mesa-d3d12, mesa-zink folders
+rem output is in mesa-radv folders
 
 if "%GITHUB_WORKFLOW%" neq "" (
-  mkdir archive-llvmpipe
-  pushd archive-llvmpipe
-  copy /y ..\mesa-llvmpipe-%MESA_ARCH%\bin\opengl32.dll .
-  %SZIP% a -mx=9 ..\mesa-llvmpipe-%MESA_ARCH%-%MESA_VERSION%.zip 
-  popd
-
-  mkdir archive-osmesa
-  pushd archive-osmesa
-  copy /y ..\mesa-llvmpipe-%MESA_ARCH%\bin\osmesa.dll      .
-  copy /y ..\mesa-llvmpipe-%MESA_ARCH%\lib\osmesa.lib      .
-  copy /y ..\mesa-llvmpipe-%MESA_ARCH%\include\GL\osmesa.h .
-  %SZIP% a -mx=9 ..\mesa-osmesa-%MESA_ARCH%-%MESA_VERSION%.zip 
-  popd
-
-  mkdir archive-lavapipe
-  pushd archive-lavapipe
-  copy /y ..\mesa-llvmpipe-%MESA_ARCH%\bin\vulkan_lvp.dll .
-  copy /y ..\mesa-llvmpipe-%MESA_ARCH%\bin\lvp_icd.!TARGET_ARCH_NAME!.json .
-  %SZIP% a -mx=9 ..\mesa-lavapipe-%MESA_ARCH%-%MESA_VERSION%.zip 
-  popd
-
-  mkdir archive-d3d12
-  pushd archive-d3d12
-  copy /y ..\mesa-d3d12-%MESA_ARCH%\bin\opengl32.dll .
-  copy /y ..\mesa-d3d12-%MESA_ARCH%\bin\dxil.dll .
-  %SZIP% a -mx=9 ..\mesa-d3d12-%MESA_ARCH%-%MESA_VERSION%.zip 
-  popd
-
-  mkdir archive-zink
-  pushd archive-zink
-  copy /y ..\mesa-zink-%MESA_ARCH%\bin\opengl32.dll .
-  %SZIP% a -mx=9 ..\mesa-zink-%MESA_ARCH%-%MESA_VERSION%.zip 
-  popd
-
-  mkdir archive-dzn
-  pushd archive-dzn
-  copy /y ..\mesa-d3d12-%MESA_ARCH%\bin\vulkan_dzn.dll .
-  copy /y ..\mesa-d3d12-%MESA_ARCH%\bin\dxil.dll .
-  copy /y ..\mesa-d3d12-%MESA_ARCH%\bin\dzn_icd.!TARGET_ARCH_NAME!.json .
-  %SZIP% a -mx=9 ..\mesa-dzn-%MESA_ARCH%-%MESA_VERSION%.zip
+  mkdir archive-radv
+  pushd archive-radv
+  copy /y ..\mesa-radv-%MESA_ARCH%\bin\vulkan_radv.dll .
+  copy /y ..\mesa-radv-%MESA_ARCH%\bin\radv_icd.!TARGET_ARCH_NAME!.json .
+  %SZIP% a -mx=9 ..\mesa-radv-%MESA_ARCH%-%MESA_VERSION%.zip 
   popd
 
   echo LLVM_VERSION=%LLVM_VERSION%>>%GITHUB_OUTPUT%
