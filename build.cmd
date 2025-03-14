@@ -202,7 +202,7 @@ meson setup ^
   -Db_vscrt=mt ^
   -Dplatforms=windows ^
   -Degl-native-platform=windows ^
-  -Dgallium-drivers=d3d12 ^
+  -Dgallium-drivers=zink ^
   -Dvulkan-drivers=amd ^
   -Dllvm=enabled ^
   -Dvulkan-beta=true ^
