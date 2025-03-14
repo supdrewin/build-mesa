@@ -6,72 +6,13 @@ set MESA_VERSION=25.0.1
 
 rem *** architectures ***
 
-if "%1" equ "x86" (
-  set MESA_ARCH=x86
-) else if "%1" equ "x64" (
-  set MESA_ARCH=x64
-) else if "%1" equ "arm64" (
-  set MESA_ARCH=arm64
-) else if "%1" equ "x86" (
-  set MESA_ARCH=x86
-) else if "%1" neq "" (
-  echo Unknown "%1" architecture!
-  exit /b 1
-) else if "%PROCESSOR_ARCHITECTURE%" equ "x86" (
-  set MESA_ARCH=x86
-) else if "%PROCESSOR_ARCHITECTURE%" equ "AMD64" (
-  set MESA_ARCH=x64
-) else if "%PROCESSOR_ARCHITECTURE%" equ "ARM64" (
-  set MESA_ARCH=arm64
-) else if "%PROCESSOR_ARCHITECTURE%" equ "x86" (
-  set MESA_ARCH=x86
-) else (
-  echo Unknown host architecture!
-  exit /b 1
-)
+set MESA_ARCH=x64
 
-if "%MESA_ARCH%" equ "x86" (
-  set TARGET_ARCH=x86
-  set LLVM_TARGETS_TO_BUILD=X86
-  set TARGET_ARCH_NAME=i686
-) else if "%MESA_ARCH%" equ "x64" (
-  set TARGET_ARCH=amd64
-  set LLVM_TARGETS_TO_BUILD=X86
-  set TARGET_ARCH_NAME=x86_64
-) else if "%MESA_ARCH%" equ "arm64" (
-  set TARGET_ARCH=arm64
-  set LLVM_TARGETS_TO_BUILD=AArch64
-  set TARGET_ARCH_NAME=aarch64
-) else if "%MESA_ARCH%" equ "x86" (
-  set TARGET_ARCH=x86
-  set LLVM_TARGETS_TO_BUILD=X86
-  set TARGET_ARCH_NAME=x86
-)
+set TARGET_ARCH=amd64
+set LLVM_TARGETS_TO_BUILD=X86
+set TARGET_ARCH_NAME=x86_64
 
-if "%PROCESSOR_ARCHITECTURE%" equ "x86" (
-  set HOST_ARCH=x86
-) else if "%PROCESSOR_ARCHITECTURE%" equ "AMD64" (
-  set HOST_ARCH=amd64
-) else if "%PROCESSOR_ARCHITECTURE%" equ "ARM64" (
-  set HOST_ARCH=arm64
-) else if "%PROCESSOR_ARCHITECTURE%" equ "x86" (
-  set HOST_ARCH=x86
-)
-
-if "!TARGET_ARCH!" neq "!HOST_ARCH!" (
-  set LLVM_CROSS_CMAKE_FLAGS=-D CMAKE_SYSTEM_NAME=Windows -D LLVM_NATIVE_TOOL_DIR="%CD%\llvm.build-native\bin"
-  set MESON_CROSS=--cross-file "%CD%\meson-%MESA_ARCH%.txt"
-) else if "%MESA_ARCH%" equ "arm64" (
-  set LLVM_CROSS_CMAKE_FLAGS=
-  set MESON_CROSS=
-) else if "%MESA_ARCH%" equ "x86" (
-  set LLVM_CROSS_CMAKE_FLAGS=
-  set MESON_CROSS=
-)
-
-if "%MESA_ARCH%" equ "x86" (
-  set MESON_CROSS=%MESON_CROSS% -Dmin-windows-version=7
-)
+set HOST_ARCH=amd64
 
 set PATH=%CD%\llvm-%MESA_ARCH%\bin;%CD%\winflexbison;%PATH%
 
@@ -137,15 +78,8 @@ where /q cmake.exe || (
 )
 
 where /q ninja.exe || (
-  if "%PROCESSOR_ARCHITECTURE%" equ "x86" (
-    curl -LOsf https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-win.zip || exit /b 1
-  ) else if "%PROCESSOR_ARCHITECTURE%" equ "AMD64" (
-    curl -LOsf https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-win.zip || exit /b 1
-  ) else if "%PROCESSOR_ARCHITECTURE%" equ "ARM64" (
-    curl -Lsf -o ninja-win.zip https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-winarm64.zip || exit /b 1
-  ) else if "%PROCESSOR_ARCHITECTURE%" equ "x86" (
-    curl -LOsf https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-win.zip || exit /b 1
-  )
+  curl -LOsf https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-win.zip || exit /b 1
+
   %SZIP% x -bb0 -y ninja-win.zip 1>nul 2>nul || exit /b 1
   del ninja-win.zip 1>nul 2>nul
 )
@@ -207,51 +141,6 @@ if "%SKIP_LLVM%" neq "" (
   goto :no-llvm-build
 )
 
-if "!TARGET_ARCH!" neq "!HOST_ARCH!" (
-
-  call "!VS!\Common7\Tools\VsDevCmd.bat" -arch=!HOST_ARCH! -host_arch=!HOST_ARCH! -startdir=none -no_logo || exit /b 1
-  cmake ^
-    -G Ninja ^
-    -S llvm.src ^
-    -B llvm.build-native ^
-    -D CMAKE_INSTALL_PREFIX="%CD%\llvm-native" ^
-    -D CMAKE_BUILD_TYPE="Release" ^
-    -D CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded ^
-    -D BUILD_SHARED_LIBS=OFF ^
-    -D LLVM_TARGETS_TO_BUILD=%LLVM_TARGETS_TO_BUILD% ^
-    -D LLVM_ENABLE_BACKTRACES=OFF ^
-    -D LLVM_ENABLE_UNWIND_TABLES=OFF ^
-    -D LLVM_ENABLE_CRASH_OVERRIDES=OFF ^
-    -D LLVM_ENABLE_LIBXML2=OFF ^
-    -D LLVM_ENABLE_LIBEDIT=OFF ^
-    -D LLVM_ENABLE_LIBPFM=OFF ^
-    -D LLVM_ENABLE_ZLIB=OFF ^
-    -D LLVM_ENABLE_Z3_SOLVER=OFF ^
-    -D LLVM_ENABLE_WARNINGS=OFF ^
-    -D LLVM_ENABLE_PEDANTIC=OFF ^
-    -D LLVM_ENABLE_WERROR=OFF ^
-    -D LLVM_ENABLE_ASSERTIONS=OFF ^
-    -D LLVM_BUILD_LLVM_C_DYLIB=OFF ^
-    -D LLVM_BUILD_UTILS=OFF ^
-    -D LLVM_BUILD_TESTS=OFF ^
-    -D LLVM_BUILD_DOCS=OFF ^
-    -D LLVM_BUILD_EXAMPLES=OFF ^
-    -D LLVM_BUILD_BENCHMARKS=OFF ^
-    -D LLVM_INCLUDE_UTILS=OFF ^
-    -D LLVM_INCLUDE_TESTS=OFF ^
-    -D LLVM_INCLUDE_DOCS=OFF ^
-    -D LLVM_INCLUDE_EXAMPLES=OFF ^
-    -D LLVM_INCLUDE_BENCHMARKS=OFF ^
-    -D LLVM_ENABLE_BINDINGS=OFF ^
-    -D LLVM_OPTIMIZED_TABLEGEN=ON ^
-    -D LLVM_ENABLE_PLUGINS=OFF ^
-    -D LLVM_ENABLE_IDE=OFF || exit /b 1
-
-    ninja -C llvm.build-native llvm-tblgen || exit /b 1
-    echo . > llvm.build-native\bin\llvm-nm.exe
-    echo . > llvm.build-native\bin\llvm-readobj.exe
-)
-
 call "!VS!\Common7\Tools\VsDevCmd.bat" -arch=!TARGET_ARCH! -host_arch=!HOST_ARCH! -startdir=none -no_logo || exit /b 1
 cmake ^
   -G Ninja ^
@@ -308,12 +197,16 @@ meson setup ^
   mesa.src ^
   --prefix="%CD%\mesa-radv-%MESA_ARCH%" ^
   --default-library=static ^
-  -Dbuildtype=release ^
+  --buildtype=release ^
   -Db_ndebug=true ^
   -Db_vscrt=mt ^
-  -Dllvm=enabled ^
   -Dplatforms=windows ^
+  -Degl-native-platform=windows ^
+  -Dgallium-drivers=d3d12 ^
   -Dvulkan-drivers=amd ^
+  -Dllvm=enabled ^
+  -Dvulkan-beta=true ^
+  -Dvideo-codecs=all ^
   !MESON_CROSS! || exit /b 1
 ninja -C mesa.build-%MESA_ARCH% install || exit /b 1
 python mesa.src\src\vulkan\util\vk_icd_gen.py --api-version 1.4 --xml mesa.src\src\vulkan\registry\vk.xml --lib-path vulkan_radv.dll --out mesa-radv-%MESA_ARCH%\bin\radv_icd.!TARGET_ARCH_NAME!.json || exit /b 1
