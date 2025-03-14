@@ -189,13 +189,14 @@ rem *** extra libs ***
 
 set LINK=version.lib ntdll.lib
 
-rem *** radv ***
+rem *** radv, zink ***
 
 rd /s /q mesa.build-%MESA_ARCH% 1>nul 2>nul
+git apply -p0 --directory=mesa.src mesa-zink.patch || exit /b 1
 meson setup ^
   mesa.build-%MESA_ARCH% ^
   mesa.src ^
-  --prefix="%CD%\mesa-radv-%MESA_ARCH%" ^
+  --prefix="%CD%\mesa-%MESA_ARCH%" ^
   --default-library=static ^
   --buildtype=release ^
   -Db_ndebug=true ^
@@ -209,17 +210,18 @@ meson setup ^
   -Dvideo-codecs=all ^
   !MESON_CROSS! || exit /b 1
 ninja -C mesa.build-%MESA_ARCH% install || exit /b 1
-python mesa.src\src\vulkan\util\vk_icd_gen.py --api-version 1.4 --xml mesa.src\src\vulkan\registry\vk.xml --lib-path vulkan_radv.dll --out mesa-radv-%MESA_ARCH%\bin\radv_icd.!TARGET_ARCH_NAME!.json || exit /b 1
+python mesa.src\src\vulkan\util\vk_icd_gen.py --api-version 1.4 --xml mesa.src\src\vulkan\registry\vk.xml --lib-path vulkan_radeon.dll --out mesa-%MESA_ARCH%\bin\radeon_icd.!TARGET_ARCH_NAME!.json || exit /b 1
 
 rem *** done ***
-rem output is in mesa-radv folders
+rem output is in mesa folders
 
 if "%GITHUB_WORKFLOW%" neq "" (
-  mkdir archive-radv
-  pushd archive-radv
-  copy /y ..\mesa-radv-%MESA_ARCH%\bin\vulkan_radv.dll .
-  copy /y ..\mesa-radv-%MESA_ARCH%\bin\radv_icd.!TARGET_ARCH_NAME!.json .
-  %SZIP% a -mx=9 ..\mesa-radv-%MESA_ARCH%-%MESA_VERSION%.zip 
+  mkdir archive
+  pushd archive
+  copy /y ..\mesa-%MESA_ARCH%\bin\vulkan_radeon.dll .
+  copy /y ..\mesa-%MESA_ARCH%\bin\radeon_icd.!TARGET_ARCH_NAME!.json .
+  copy /y ..\mesa-%MESA_ARCH%\bin\opengl32.dll .
+  %SZIP% a -mx=9 ..\mesa-%MESA_ARCH%-%MESA_VERSION%.zip 
   popd
 
   echo LLVM_VERSION=%LLVM_VERSION%>>%GITHUB_OUTPUT%
